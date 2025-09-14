@@ -25,7 +25,7 @@ import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import org.springframework.security.crypto.password.NoOpPasswordEncoder;
 
-
+import java.util.Arrays;
 import java.util.List;
 
 @Configuration
@@ -39,20 +39,18 @@ public class SecurityConfig {
     this.jwtService = jwtService;
     this.userService = userService;
   }
+  
   @Bean
   public CorsConfigurationSource corsConfigurationSource() {
     CorsConfiguration config = new CorsConfiguration();
-    // Allow requests from nginx proxy and direct access
-    config.setAllowedOrigins(List.of(
-        "http://localhost:3000",
-        "http://127.0.0.1:3000", 
-        "http://frontend:80",
-        "http://backend:8080"
-    )); 
-    config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
-    config.setAllowedHeaders(List.of("*"));
+    // Allow requests from frontend development and production
+    config.setAllowedOriginPatterns(Arrays.asList("*")); // More permissive for development
+    config.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
+    config.setAllowedHeaders(Arrays.asList("*"));
     config.setAllowCredentials(true);
-  
+    config.setExposedHeaders(Arrays.asList("Authorization"));
+    config.setMaxAge(3600L);
+
     UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
     source.registerCorsConfiguration("/**", config);
     return source;
@@ -65,11 +63,14 @@ public class SecurityConfig {
         .cors(cors -> cors.configurationSource(corsConfigurationSource()))
         .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
         .authorizeHttpRequests(auth -> auth
-            .requestMatchers(HttpMethod.POST, "/api/auth/login").permitAll()
-            .requestMatchers(HttpMethod.POST, "/api/auth/register").permitAll()
-            .requestMatchers("/api/auth/**").permitAll()
-            .requestMatchers("/v3/api-docs/**", "/swagger-ui/**").permitAll()
+            .requestMatchers(HttpMethod.POST, "/api/auth/login", "/api/auth/register").permitAll()
+            .requestMatchers(HttpMethod.GET, "/api/auth/test").permitAll()
+            .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
             .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll() // Allow preflight requests
+            .requestMatchers("/api/admin/**").hasRole("ADMIN")
+            .requestMatchers("/api/doctor/**").hasAnyRole("DOCTOR", "ADMIN")
+            .requestMatchers("/api/reception/**").hasAnyRole("RECEPTIONIST", "ADMIN")
+            .requestMatchers("/api/reports/**").hasAnyRole("ADMIN", "DOCTOR", "RECEPTIONIST")
             .anyRequest().authenticated()
         )
         .addFilterBefore(new JwtAuthFilter(jwtService, userService), UsernamePasswordAuthenticationFilter.class);
@@ -87,11 +88,15 @@ public class SecurityConfig {
   static class JwtAuthFilter extends OncePerRequestFilter {
     private final JwtService jwtService;
     private final UserService userService;
+    
     JwtAuthFilter(JwtService jwtService, UserService userService) {
-      this.jwtService = jwtService; this.userService = userService;
+      this.jwtService = jwtService; 
+      this.userService = userService;
     }
+    
     @Override
-    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain) throws ServletException, IOException {
+    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain) 
+        throws ServletException, IOException {
       String auth = request.getHeader("Authorization");
       if (auth != null && auth.startsWith("Bearer ")) {
         String token = auth.substring(7);
@@ -101,7 +106,9 @@ public class SecurityConfig {
           var userDetails = userService.loadUserByUsername(email);
           var authToken = new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
           SecurityContextHolder.getContext().setAuthentication(authToken);
-        } catch (Exception ignored) {}
+        } catch (Exception ignored) {
+          // Invalid token, continue without authentication
+        }
       }
       chain.doFilter(request, response);
     }
