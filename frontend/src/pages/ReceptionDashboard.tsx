@@ -514,6 +514,7 @@ export default function ReceptionDashboard() {
                 </thead>
                 <tbody>
                   {filteredPatients.map(patient => (
+                    <tr key={patient.id} className="border-b">
                       <td className="px-4 py-2 font-medium">{patient.code}</td>
                       <td className="px-4 py-2">{patient.fullName}</td>
                       <td className="px-4 py-2">{patient.phone}</td>

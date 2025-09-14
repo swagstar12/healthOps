@@ -363,8 +363,9 @@ public class ReceptionistController {
 
   @GetMapping("/appointments/search")
   public List<Appointment> searchAppointments(@RequestParam String query) {
-    return apptRepo.findByPatientFullNameContainingIgnoreCaseOrPatientCodeContainingIgnoreCase(query, query);
+    return apptRepo.searchByPatientNameOrCode(query);
   }
+
 
   private String safe(String s) { 
     return s == null ? "" : s.replaceAll("[\r\n,]", " "); 

@@ -3,7 +3,7 @@ import { api } from '../api'
 
 type Doctor = { 
   id: number
-  user: { email: string, fullName: string, enabled: boolean }
+  user: { id: number, email: string, fullName: string, enabled: boolean }
   specialization?: string
   phone?: string 
 }
@@ -62,6 +62,7 @@ export default function AdminDashboard() {
       setStats(statsRes.data)
     } catch (error) {
       console.error('Failed to load data:', error)
+      alert('Failed to load data. Please check the console for details.')
     } finally {
       setLoading(false)
     }
@@ -83,9 +84,10 @@ export default function AdminDashboard() {
         await api.post('/admin/doctors', doctorForm)
       }
       setDoctorForm({ email: '', fullName: '', password: '', specialization: '', phone: '' })
-      loadData()
+      await loadData()
     } catch (error) {
       console.error('Failed to save doctor:', error)
+      alert('Failed to save doctor. Please try again.')
     }
   }
 
@@ -104,9 +106,10 @@ export default function AdminDashboard() {
     if (confirm('Are you sure you want to delete this doctor?')) {
       try {
         await api.delete(`/admin/doctors/${id}`)
-        loadData()
+        await loadData()
       } catch (error) {
         console.error('Failed to delete doctor:', error)
+        alert('Failed to delete doctor. Please try again.')
       }
     }
   }
@@ -126,9 +129,10 @@ export default function AdminDashboard() {
         await api.post('/admin/receptionists', receptionistForm)
       }
       setReceptionistForm({ email: '', fullName: '', password: '' })
-      loadData()
+      await loadData()
     } catch (error) {
       console.error('Failed to save receptionist:', error)
+      alert('Failed to save receptionist. Please try again.')
     }
   }
 
@@ -145,9 +149,10 @@ export default function AdminDashboard() {
     if (confirm('Are you sure you want to delete this receptionist?')) {
       try {
         await api.delete(`/admin/receptionists/${id}`)
-        loadData()
+        await loadData()
       } catch (error) {
         console.error('Failed to delete receptionist:', error)
+        alert('Failed to delete receptionist. Please try again.')
       }
     }
   }
@@ -155,9 +160,10 @@ export default function AdminDashboard() {
   async function toggleUserStatus(userId: number, userType: 'doctor' | 'receptionist') {
     try {
       await api.put(`/admin/users/${userId}/toggle-status`)
-      loadData()
+      await loadData()
     } catch (error) {
       console.error('Failed to toggle user status:', error)
+      alert('Failed to toggle user status. Please try again.')
     }
   }
 
@@ -315,6 +321,20 @@ export default function AdminDashboard() {
                 <tbody>
                   {doctors.map(doctor => (
                     <tr key={doctor.id} className="border-b">
+                      <td className="px-4 py-2">{doctor.id}</td>
+                      <td className="px-4 py-2">{doctor.user?.fullName}</td>
+                      <td className="px-4 py-2">{doctor.user?.email}</td>
+                      <td className="px-4 py-2">{doctor.specialization}</td>
+                      <td className="px-4 py-2">{doctor.phone}</td>
+                      <td className="px-4 py-2">
+                        <span className={`px-2 py-1 rounded-full text-xs ${
+                          doctor.user?.enabled 
+                            ? 'bg-green-100 text-green-800' 
+                            : 'bg-red-100 text-red-800'
+                        }`}>
+                          {doctor.user?.enabled ? 'Active' : 'Inactive'}
+                        </span>
+                      </td>
                       <td className="px-4 py-2">
                         <div className="flex space-x-2">
                           <button
@@ -510,18 +530,4 @@ export default function AdminDashboard() {
       )}
     </div>
   )
-} py-2">{doctor.id}</td>
-                      <td className="px-4 py-2">{doctor.user?.fullName}</td>
-                      <td className="px-4 py-2">{doctor.user?.email}</td>
-                      <td className="px-4 py-2">{doctor.specialization}</td>
-                      <td className="px-4 py-2">{doctor.phone}</td>
-                      <td className="px-4 py-2">
-                        <span className={`px-2 py-1 rounded-full text-xs ${
-                          doctor.user?.enabled 
-                            ? 'bg-green-100 text-green-800' 
-                            : 'bg-red-100 text-red-800'
-                        }`}>
-                          {doctor.user?.enabled ? 'Active' : 'Inactive'}
-                        </span>
-                      </td>
-                      <td className="px-4
+}
