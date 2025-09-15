@@ -6,6 +6,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
+import java.util.HashSet;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -17,7 +18,8 @@ public class UserService implements UserDetailsService {
   
 
   public UserService(UserRepository userRepo, RoleRepository roleRepo) {
-    this.userRepo = userRepo; this.roleRepo = roleRepo;
+    this.userRepo = userRepo; 
+    this.roleRepo = roleRepo;
   }
 
   @Override
@@ -31,11 +33,16 @@ public class UserService implements UserDetailsService {
 
   public User register(String email, String fullName, String password, Role role) {
     var roleEntity = roleRepo.findByName(role.name()).orElseThrow();
+    
     var u = User.builder()
-        .email(email).fullName(fullName)
+        .email(email)
+        .fullName(fullName)
         .password(password)
-        .enabled(true).build();
+        .build();
+    
+    // Add the role to the default-initialized roles set
     u.getRoles().add(roleEntity);
+    
     return userRepo.save(u);
   }
 }
