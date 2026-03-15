@@ -1,10 +1,11 @@
-import React from 'react'
+import React, { useState } from 'react'
 import { Routes, Route, Navigate, Link } from 'react-router-dom'
 import { AuthProvider, useAuth } from './auth'
 import Login from './pages/Login'
 import AdminDashboard from './pages/AdminDashboard'
 import DoctorDashboard from './pages/DoctorDashboard'
 import ReceptionDashboard from './pages/ReceptionDashboard'
+import ChatBot from './components/ChatBot'
 
 const Protected: React.FC<{children:React.ReactNode, roles?: string[]}> = ({children, roles}) => {
   const {user} = useAuth()
@@ -13,14 +14,20 @@ const Protected: React.FC<{children:React.ReactNode, roles?: string[]}> = ({chil
   return <>{children}</>
 }
 
-const Nav: React.FC = () => {
+const Nav: React.FC<{ onLogout: () => void }> = ({ onLogout }) => {
   const {user, logout} = useAuth()
+
+  function handleLogout() {
+    logout()
+    onLogout()
+  }
+
   return (
     <div className="left 0 flex items-center justify-between itmes-center px-10 py-6 z-20 bg-white shadow mt-16">
       <Link to="/" className="font-bold">HealthOps System</Link>
       <div className="flex gap-4 items-center">
         {user && <span className="text-sm">{user.fullName} — {user.role}</span>}
-        {user ? <button className="btn" onClick={logout}>Logout</button> : <Link className="btn" to="/login">Login</Link>}
+        {user ? <button className="btn" onClick={handleLogout}>Logout</button> : <Link className="btn" to="/login">Login</Link>}
       </div>
     </div>
   )
@@ -35,9 +42,11 @@ const Home: React.FC = () => {
 }
 
 export default function App(){
+  const [resetKey, setResetKey] = useState(0)
+
   return (
     <AuthProvider>
-      <Nav />
+      <Nav onLogout={() => setResetKey(k => k + 1)} />
       <div className="max-w-6xl mx-auto p-6">
         <Routes>
           <Route path="/" element={<Home/>} />
@@ -47,6 +56,7 @@ export default function App(){
           <Route path="/reception" element={<Protected roles={['RECEPTIONIST','ADMIN']}><ReceptionDashboard/></Protected>} />
         </Routes>
       </div>
+      <ChatBot resetKey={resetKey} />
     </AuthProvider>
   )
 }

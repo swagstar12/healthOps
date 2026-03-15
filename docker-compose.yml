@@ -13,13 +13,23 @@ services:
       SPRING_DATASOURCE_USERNAME: postgres
       SPRING_DATASOURCE_PASSWORD: pranavbhange12
       SPRING_JPA_HIBERNATE_DDL_AUTO: update
-      SPRING_JPA_SHOW_SQL: "true"
       SPRING_FLYWAY_URL: jdbc:postgresql://db:5432/healthops
       SPRING_FLYWAY_USER: postgres
       SPRING_FLYWAY_PASSWORD: pranavbhange12
-      # Add these for better debugging
-      LOGGING_LEVEL_ORG_SPRINGFRAMEWORK_SECURITY: DEBUG
-      LOGGING_LEVEL_COM_HEALTHOPS: DEBUG
+    networks:
+      - healthops-network
+
+  chatbot:
+    build:
+      context: ./chatbot
+      dockerfile: Dockerfile
+    ports:
+      - "8001:8001"
+    environment:
+      GEMINI_API_KEY: AIzaSyBQHxaC2SiDqVwpq6UGdZQnA5b6Iv1waq8   # ← paste your key
+      JAVA_BACKEND_URL: http://backend:8080
+    depends_on:
+      - backend
     networks:
       - healthops-network
 
@@ -31,6 +41,7 @@ services:
       - "3000:80"
     depends_on:
       - backend
+      - chatbot
     networks:
       - healthops-network
 
